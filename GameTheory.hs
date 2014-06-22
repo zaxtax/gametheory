@@ -23,13 +23,13 @@ tit me False = conditioned $ bern me
 
 data SChoice = Tit | AllDefect deriving (Eq, Enum, Typeable)
 
-chooseStrategy :: SChoice -> Strategy
-chooseStrategy Tit = tit
-chooseStrategy AllDefect = allDefect
+chooseStrategy :: Int -> Strategy
+chooseStrategy 0 = tit
+chooseStrategy 1 = allDefect
 
-strat :: Measure SChoice
-strat = unconditioned $ categorical [(AllDefect, 0.5),
-                                     (Tit, 0.5)]
+strat :: Measure Int
+strat = unconditioned $ categorical [(fromEnum AllDefect, 0.5),
+                                     (fromEnum Tit, 0.5)]
 
 play :: Strategy -> Strategy -> 
         (Bool, Bool) -> (Trust, Trust) -> Outcome
@@ -76,8 +76,8 @@ games = [Just (toDyn False), Just (toDyn False),
          Just (toDyn False), Just (toDyn True),
          Just (toDyn False), Just (toDyn False)]
 
-run_game :: IO [(Double, Double)]
-run_game = mcmc iterated_game games
+run_game :: IO [(Int, Int)]
+run_game = mcmc iterated_game2 games
 
 viz_game :: IO ()
 viz_game = do
