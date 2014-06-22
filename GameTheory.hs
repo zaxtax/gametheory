@@ -1,4 +1,5 @@
-{-# LANGUAGE RankNTypes, DataKinds, NoMonomorphismRestriction, BangPatterns #-}
+{-# LANGUAGE RankNTypes, DataKinds, NoMonomorphismRestriction,
+  DeriveDataTypeable, BangPatterns #-}
 
 module Examples where
 
@@ -20,9 +21,11 @@ tit :: Trust -> Bool -> Measure Bool
 tit me True  = conditioned $ bern 0.9
 tit me False = conditioned $ bern me  
 
-strat :: Measure Bool
-strat = unconditioned $ categorical [(False, 0.5),
-                                     (True, 0.5)]
+data SChoice = Tit | AllDefect deriving (Eq, Enum, Typeable)
+
+strat :: Measure SChoice
+strat = unconditioned $ categorical [(AllDefect, 0.5),
+                                     (Tit, 0.5)]
 
 play :: Strategy -> Strategy -> 
         (Bool, Bool) -> (Trust, Trust) -> Outcome
@@ -42,20 +45,22 @@ iterated_game = do
   return (a, b)
 
 
-iterated_game2 :: Measure (Double, Double)
+iterated_game2 :: Measure (Int, Int)
 iterated_game2 = do
   let a_initial = False
   let b_initial = False
   a <- unconditioned $ uniform 0 1
   b <- unconditioned $ uniform 0 1
   na <- strat
-  let (a_strat, as) = case na of
-                        True  -> (tit, 0)
-                        False -> (allDefect, 1)
+  let as = fromEnum na 
+  let a_strat = case na of
+                  Tit  -> tit
+                  AllDefect -> allDefect
   nb <- strat
-  let (b_strat, bs) = case nb of
-                        True  -> (tit, 0)
-                        False -> (allDefect, 1)
+  let bs = fromEnum nb 
+  let b_strat = case nb of
+                  Tit  -> tit
+                  AllDefect -> allDefect
   rounds <- replicateM 10 $ return (a, b)
   foldM_ (play a_strat b_strat) (a_initial,b_initial) rounds
   return (as, bs)
