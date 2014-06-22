@@ -12,30 +12,42 @@ import Visual
 
 type Outcome = Measure (Bool, Bool)
 type Trust = Double
-type Strategy = Trust -> Bool -> Measure Bool
+type Strategy = Trust -> Bool -> Bool -> Measure Bool
 
-allDefect :: Trust -> Bool -> Measure Bool
-allDefect _ _ = conditioned $ bern 0.9
+allCooperate :: Trust -> Bool -> Bool -> Measure Bool
+allCooperate _ _ _ = conditioned $ bern 0.1
 
-tit :: Trust -> Bool -> Measure Bool
-tit me True  = conditioned $ bern 0.9
-tit me False = conditioned $ bern me  
+allDefect :: Trust -> Bool -> Bool -> Measure Bool
+allDefect _ _ _ = conditioned $ bern 0.9
 
-data SChoice = Tit | AllDefect deriving (Eq, Enum, Typeable)
+grimTrigger :: Trust -> Bool -> Bool -> Measure Bool
+grimTrigger me True False   = conditioned $ bern 0.9
+grimTrigger me False False  = conditioned $ bern 0.1
+grimTrigger me _ True       = conditioned $ bern 0.9
+
+tit :: Trust -> Bool -> Bool -> Measure Bool
+tit me True _  = conditioned $ bern 0.9
+tit me False _ = conditioned $ bern me  
+
+data SChoice = Tit | GrimTrigger | AllDefect | AllCooperate deriving (Eq, Enum, Typeable)
 
 chooseStrategy :: Int -> Strategy
 chooseStrategy 0 = tit
 chooseStrategy 1 = allDefect
+chooseStrategy 2 = allCooperate
+chooseStrategy 3 = grimTrigger
 
 strat :: Measure Int
-strat = unconditioned $ categorical [(fromEnum AllDefect, 0.5),
-                                     (fromEnum Tit, 0.5)]
+strat = unconditioned $ categorical [(fromEnum AllCooperate, 0.25),
+                                     (fromEnum AllDefect, 0.25),
+                                     (fromEnum GrimTrigger, 0.25),
+                                     (fromEnum Tit, 0.25)]
 
 play :: Strategy -> Strategy -> 
         (Bool, Bool) -> (Trust, Trust) -> Outcome
 play strat_a strat_b (last_a,last_b) (a,b) = do
-    a_action <- strat_a a last_b
-    b_action <- strat_b b last_a
+    a_action <- strat_a a last_b last_a
+    b_action <- strat_b b last_a last_b
     return (a_action, b_action)
 
 iterated_game :: Measure (Double, Double)
