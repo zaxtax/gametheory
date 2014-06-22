@@ -23,9 +23,9 @@ tit me False = conditioned $ bern me
 
 data SChoice = Tit | AllDefect deriving (Eq, Enum, Typeable)
 
-schoice :: Schoice -> Strategy
-chooseStrategy (Tit t) = t
-chooseStrategy (AllDefect t) = t
+chooseStrategy :: SChoice -> Strategy
+chooseStrategy Tit = tit
+chooseStrategy AllDefect = allDefect
 
 strat :: Measure SChoice
 strat = unconditioned $ categorical [(AllDefect, 0.5),
