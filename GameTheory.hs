@@ -29,19 +29,20 @@ tit :: Trust -> Bool -> Bool -> Measure Bool
 tit me True _  = conditioned $ bern 0.9
 tit me False _ = conditioned $ bern me  
 
-data SChoice = Tit | GrimTrigger | AllDefect | AllCooperate deriving (Eq, Enum, Typeable)
+data SChoice = Tit | GrimTrigger | AllDefect | AllCooperate
+               deriving (Eq, Enum, Typeable)
 
-chooseStrategy :: Int -> Strategy
-chooseStrategy 0 = tit
-chooseStrategy 1 = allDefect
-chooseStrategy 2 = allCooperate
-chooseStrategy 3 = grimTrigger
+chooseStrategy :: SChoice -> Strategy
+chooseStrategy Tit = tit
+chooseStrategy AllDefect = allDefect
+chooseStrategy AllCooperate = allCooperate
+chooseStrategy GrimTrigger = grimTrigger
 
-strat :: Measure Int
-strat = unconditioned $ categorical [(fromEnum AllCooperate, 0.25),
-                                     (fromEnum AllDefect, 0.25),
-                                     (fromEnum GrimTrigger, 0.25),
-                                     (fromEnum Tit, 0.25)]
+strat :: Measure SChoice
+strat = unconditioned $ categorical [(AllCooperate, 0.25),
+                                     (AllDefect, 0.25),
+                                     (GrimTrigger, 0.25),
+                                     (Tit, 0.25)]
 
 play :: Strategy -> Strategy -> 
         (Bool, Bool) -> (Trust, Trust) -> Outcome
@@ -68,14 +69,12 @@ iterated_game2 = do
   a <- unconditioned $ uniform 0 1
   b <- unconditioned $ uniform 0 1
   na <- strat
-  let as = fromEnum na 
   let a_strat = chooseStrategy na
   nb <- strat
-  let bs = fromEnum nb 
   let b_strat = chooseStrategy nb
   rounds <- replicateM 10 $ return (a, b)
   foldM_ (play a_strat b_strat) (a_initial,b_initial) rounds
-  return (as, bs)
+  return (fromEnum na, fromEnum nb)
  
 games = [Just (toDyn False), Just (toDyn False),
          Just (toDyn False), Just (toDyn True),
