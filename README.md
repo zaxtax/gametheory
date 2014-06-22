@@ -1,0 +1,4 @@
+gametheory
+==========
+
+Game Theory experiments
