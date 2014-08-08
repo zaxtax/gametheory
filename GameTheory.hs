@@ -3,12 +3,13 @@
 
 module Examples where
 
-import Types
 import Data.Dynamic
 import Control.Monad
 
-import InterpreterMH hiding (main)
-import Visual
+import Language.Hakaru.Types
+import Language.Hakaru.Distribution
+import Language.Hakaru.Metropolis
+import Language.Hakaru.Util.Visual
 
 type Outcome = Measure (Bool, Bool)
 type Trust = Double
@@ -28,6 +29,23 @@ grimTrigger me _ True       = conditioned $ bern 0.9
 tit :: Trust -> Bool -> Bool -> Measure Bool
 tit me True _  = conditioned $ bern 0.9
 tit me False _ = conditioned $ bern me  
+
+logit :: Floating a => a -> a
+logit !x = 1 / (1 + exp (- x))
+
+fairness :: Double -> Double -> Double
+fairness total proposal = logit $ 1 - abs ( (total / 2) - proposal )
+
+ultimatum_game :: Measure (Double, Double)
+ultimatum_game = do
+  reward <- unconditioned $ uniform 0 10
+  accept <- conditioned $ bern $ fairness 10 reward
+  return (reward, 10 - reward)
+
+rejected = Just (toDyn (Discrete False))
+accepted = Just (toDyn (Discrete True))
+
+ultimatum_sim = mcmc ultimatum_game [accepted]
 
 data SChoice = Tit | GrimTrigger | AllDefect | AllCooperate
                deriving (Eq, Enum, Typeable)
@@ -75,17 +93,20 @@ iterated_game2 = do
   rounds <- replicateM 10 $ return (a, b)
   foldM_ (play a_strat b_strat) (a_initial,b_initial) rounds
   return (fromEnum na, fromEnum nb)
- 
-games = [Just (toDyn False), Just (toDyn False),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn False),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn False),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn True),
-         Just (toDyn False), Just (toDyn False)]
+
+cooperate = Just (toDyn (Discrete False))
+defect = Just (toDyn (Discrete True))
+
+games = [cooperate, cooperate,
+         cooperate, defect,
+         cooperate, cooperate,
+         cooperate, defect,
+         cooperate, defect,
+         cooperate, cooperate,
+         cooperate, defect,
+         cooperate, defect,
+         cooperate, defect,
+         cooperate, cooperate]
 
 run_game :: IO [(Int, Int)]
 run_game = mcmc iterated_game2 games
